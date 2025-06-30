@@ -1,0 +1,19 @@
+{
+    "name": "mathsgod/flysystem-pcloud",
+    "authors": [
+        {
+            "name": "Raymond Chong",
+            "email": "mathsgod@yahoo.com"
+        }
+    ],
+    "require": {
+        "league/flysystem": "3.0",
+        "guzzlehttp/guzzle": "^7.9",
+        "mathsgod/pcloud-sdk-php": "main-dev"
+    },
+    "autoload": {
+        "psr-4": {
+            "League\\Flysystem\\pCloud\\": "src/"
+        }
+    }
+}
