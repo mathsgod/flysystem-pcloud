@@ -1,5 +1,12 @@
 {
     "name": "mathsgod/flysystem-pcloud",
+    "description": "A Flysystem adapter for pCloud storage",
+    "keywords": [
+        "flysystem",
+        "pcloud",
+        "adapter",
+        "storage"
+    ],
     "authors": [
         {
             "name": "Raymond Chong",
