@@ -221,17 +221,23 @@ class pCloudAdapter implements FilesystemAdapter
     {
         $data = $this->api->listfolder(path: $path, recursive: $deep);
 
+   
+
         $walk = function(array $items, string $parentPath = '') use (&$walk) {
             foreach ($items as $item) {
-                $itemPath = $item['path'] ?? ($parentPath === '' ? '/' : $parentPath . '/' . ($item['name'] ?? ''));
+                $itemPath = ($parentPath === '' ? '/' : $parentPath . '/' . ($item['name'] ?? ''));
                 if (!empty($item['isfolder'])) {
                     yield new \League\Flysystem\DirectoryAttributes(
                         $itemPath,
                         null,
                         isset($item['modified']) ? strtotime($item['modified']) : null
                     );
+                    // 修正：遞迴時要傳正確的 parentPath
                     if (!empty($item['contents']) && is_array($item['contents'])) {
-                        yield from $walk($item['contents'], $itemPath);
+                        // 傳入 $itemPath 作為 parentPath
+                        foreach ($walk($item['contents'], $itemPath) as $sub) {
+                            yield $sub;
+                        }
                     }
                 } else {
                     yield new \League\Flysystem\FileAttributes(
