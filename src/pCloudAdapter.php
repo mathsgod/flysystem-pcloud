@@ -33,7 +33,11 @@ class pCloudAdapter implements FilesystemAdapter
 
     public function fileExists(string $path): bool
     {
+        $path = '/' . ltrim($path, '/');
         $result = $this->api->stat(path: $path);
+        if ($result["result"] !== 0) {
+            throw new \Exception($result["error"]);
+        }
         if ($meta = $result["metadata"]) {
             if ($meta["isfolder"]) {
                 return false;
@@ -46,7 +50,11 @@ class pCloudAdapter implements FilesystemAdapter
 
     public function directoryExists(string $path): bool
     {
+        $path = '/' . ltrim($path, '/');
         $result = $this->api->stat(path: $path);
+        if ($result["result"] !== 0) {
+            throw new \Exception($result["error"]);
+        }
         if ($meta = $result["metadata"]) {
             if ($meta["isfolder"]) {
                 return true;
@@ -60,6 +68,7 @@ class pCloudAdapter implements FilesystemAdapter
     public function write(string $path, string $contents, Config $config): void
     {
 
+        $path = '/' . ltrim($path, '/');
         $dir = dirname($path);
         if ($dir === '.' || $dir === '/') {
             $dir = '/';
@@ -67,17 +76,30 @@ class pCloudAdapter implements FilesystemAdapter
             $dir = rtrim($dir, '/');
         }
 
-        $folder = $this->api->createfolderifnotexists(path: $dir);
+        $this->createDirectory($dir, $config);
+
+        $folder = $this->api->stat(path: $dir);
+        if ($folder["result"] !== 0) {
+            throw new \Exception($folder["error"]);
+        }
+        $folder = $folder["metadata"];
+
 
         $upload = $this->api->upload_create();
-
+        if ($upload["result"] !== 0) {
+            throw new \Exception($upload["error"]);
+        }
         $this->api->upload_write(uploadid: $upload["uploadid"], uploadoffset: 0, data: $contents);
 
-        $this->api->upload_save(uploadid: $upload["uploadid"], name: basename($path), folderid: $folder["metadata"]["folderid"]);
+        $save = $this->api->upload_save(uploadid: $upload["uploadid"], name: basename($path), folderid: $folder["folderid"]);
+        if ($save["result"] !== 0) {
+            throw new \Exception($save["error"]);
+        }
     }
 
     public function writeStream(string $path, $contents, Config $config): void
     {
+        $path = '/' . ltrim($path, '/');
         if (is_resource($contents)) {
             $dir = dirname($path);
             if ($dir === '.' || $dir === '/') {
@@ -87,22 +109,24 @@ class pCloudAdapter implements FilesystemAdapter
             }
 
             $folder = $this->api->createfolderifnotexists(path: $dir);
-            $upload = $this->api->upload_create();
-
-            $uploadid = $upload["uploadid"];
-            $offset = 0;
-            $chunkSize = 1024 * 1024; // 1MB
-
-            while (!feof($contents)) {
-                $data = fread($contents, $chunkSize);
-                if ($data === false) {
-                    throw new \RuntimeException("Failed to read from stream.");
-                }
-                $this->api->upload_write(uploadid: $uploadid, uploadoffset: $offset, data: $data);
-                $offset += strlen($data);
+            if ($folder["result"] !== 0) {
+                throw new \Exception($folder["error"]);
             }
 
-            $this->api->upload_save(uploadid: $uploadid, name: basename($path), folderid: $folder["metadata"]["folderid"]);
+            $stat = fstat($contents);
+            $meta_data = stream_get_meta_data($contents);
+            $result = $this->api->uploadfile(
+                files: [
+                    $meta_data['uri'],
+                ],
+                path: $dir,
+                nopartial: true,
+                mtime: $stat['mtime'] ?? null,
+            );
+
+            if ($result["result"] !== 0) {
+                throw new \Exception($result["error"]);
+            }
         } else {
             throw new \InvalidArgumentException("Contents must be a resource.");
         }
@@ -110,11 +134,14 @@ class pCloudAdapter implements FilesystemAdapter
 
     public function read(string $path): string
     {
+        $path = '/' . ltrim($path, '/');
         $result = $this->api->getfilelink(path: $path, forcedownload: true);
+        if ($result["result"] !== 0) {
+            throw new \Exception($result["error"]);
+        }
         if (isset($result["hosts"][0])) {
             return file_get_contents("https://" . $result["hosts"][0] . $result["path"]);
         }
-
         throw new \RuntimeException("Failed to read file: " . $path);
     }
 
@@ -125,26 +152,33 @@ class pCloudAdapter implements FilesystemAdapter
 
     public function delete(string $path): void
     {
+        $path = '/' . ltrim($path, '/');
         $result = $this->api->deletefile(path: $path);
-        if (!$result["result"]) {
-            throw new \RuntimeException("Failed to delete file: " . $path);
+        if ($result["result"] !== 0) {
+            throw new \Exception($result["error"]);
         }
     }
 
     public function deleteDirectory(string $path): void
     {
-        $result = $this->api->deletefolder(path: $path);
-        if (!$result["result"]) {
-            throw new \RuntimeException("Failed to delete directory: " . $path);
+        $path = '/' . ltrim($path, '/');
+        $result = $this->api->deletefolderrecursive(path: $path);
+        if ($result["result"] !== 0) {
+            throw new \Exception($result["error"]);
         }
     }
 
-
     public function createDirectory(string $path, Config $config): void
     {
-        $result = $this->api->createfolderifnotexists(path: $path);
-        if (!$result["result"]) {
-            throw new \RuntimeException("Failed to create directory: " . $path);
+        $path = '/' . ltrim($path, '/');
+        $parts = array_filter(explode('/', $path));
+        $current = '';
+        foreach ($parts as $part) {
+            $current .= '/' . $part;
+            $result = $this->api->createfolderifnotexists(path: $current);
+            if ($result["result"] !== 0) {
+                throw new \Exception($result["error"]);
+            }
         }
     }
 
@@ -164,7 +198,11 @@ class pCloudAdapter implements FilesystemAdapter
 
     public function mimeType(string $path): FileAttributes
     {
+        $path = '/' . ltrim($path, '/');
         $result = $this->api->stat(path: $path);
+        if ($result["result"] !== 0) {
+            throw new \RuntimeException($result["error"]);
+        }
         if ($meta = $result["metadata"]) {
             if (isset($meta["contenttype"])) {
                 return new FileAttributes(
@@ -184,7 +222,11 @@ class pCloudAdapter implements FilesystemAdapter
 
     public function lastModified(string $path): FileAttributes
     {
+        $path = '/' . ltrim($path, '/');
         $result = $this->api->stat(path: $path);
+        if ($result["result"] !== 0) {
+            throw new \Exception($result["error"]);
+        }
         if ($meta = $result["metadata"]) {
             return new FileAttributes(
                 path: $path,
@@ -201,10 +243,13 @@ class pCloudAdapter implements FilesystemAdapter
 
     public function fileSize(string $path): FileAttributes
     {
+        $path = '/' . ltrim($path, '/');
         $result = $this->api->stat(path: $path);
+        if ($result["result"] !== 0) {
+            throw new \Exception($result["error"]);
+        }
         if ($meta = $result["metadata"]) {
             return new FileAttributes(
-
                 path: $path,
                 fileSize: $meta["size"] ?? null,
                 mimeType: $meta["contenttype"] ?? null,
@@ -219,11 +264,13 @@ class pCloudAdapter implements FilesystemAdapter
 
     public function listContents(string $path, bool $deep): iterable
     {
+        $path = '/' . ltrim($path, '/');
         $data = $this->api->listfolder(path: $path, recursive: $deep);
+        if ($data["result"] !== 0) {
+            throw new \Exception($data["error"]);
+        }
 
-   
-
-        $walk = function(array $items, string $parentPath = '') use (&$walk) {
+        $walk = function (array $items, string $parentPath = '') use (&$walk) {
             foreach ($items as $item) {
                 $itemPath = ($parentPath === '' ? '/' : $parentPath . '/' . ($item['name'] ?? ''));
                 if (!empty($item['isfolder'])) {
@@ -258,17 +305,37 @@ class pCloudAdapter implements FilesystemAdapter
 
     public function move(string $source, string $destination, Config $config): void
     {
+        $source = '/' . ltrim($source, '/');
+        $destination = '/' . ltrim($destination, '/');
+        // Ensure the destination directory exists
+        $destinationDir = dirname($destination);
+        $this->createDirectory($destinationDir, $config);
+
         $result = $this->api->renamefile(
             path: $source,
             topath: $destination
         );
+        if ($result["result"] !== 0) {
+            throw new \Exception($result["error"]);
+        }
     }
 
     public function copy(string $source, string $destination, Config $config): void
     {
+        $source = '/' . ltrim($source, '/');
+        $destination = '/' . ltrim($destination, '/');
+
+        //destination folder may not exist, so we need to ensure it exists
+        $destinationDir = dirname($destination);
+        $this->createDirectory($destinationDir, $config);
+
+
         $result = $this->api->copyfile(
             path: $source,
             topath: $destination
         );
+        if ($result["result"] !== 0) {
+            throw new \Exception($result["error"]);
+        }
     }
 }
