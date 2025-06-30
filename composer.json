@@ -7,6 +7,7 @@
         "adapter",
         "storage"
     ],
+    "license": "MIT",
     "authors": [
         {
             "name": "Raymond Chong",
