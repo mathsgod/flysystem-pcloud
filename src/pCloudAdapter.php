@@ -219,33 +219,34 @@ class pCloudAdapter implements FilesystemAdapter
 
     public function listContents(string $path, bool $deep): iterable
     {
-        $result = $this->client->get('listfolder', [
-            'query' => [
-                "folderid" => 0
-            ]
-        ]);
+        $data = $this->api->listfolder(path: $path, recursive: $deep);
 
-        $result = json_decode($result->getBody()->getContents(), true);
-        if (isset($result['metadata']['contents'])) {
-            foreach ($result['metadata']['contents'] as $item) {
+        $walk = function(array $items, string $parentPath = '') use (&$walk) {
+            foreach ($items as $item) {
+                $itemPath = $item['path'] ?? ($parentPath === '' ? '/' : $parentPath . '/' . ($item['name'] ?? ''));
                 if (!empty($item['isfolder'])) {
-                    // Directory
                     yield new \League\Flysystem\DirectoryAttributes(
-                        $item['path'],
+                        $itemPath,
                         null,
-                        strtotime($item['modified'])
+                        isset($item['modified']) ? strtotime($item['modified']) : null
                     );
+                    if (!empty($item['contents']) && is_array($item['contents'])) {
+                        yield from $walk($item['contents'], $itemPath);
+                    }
                 } else {
-                    // File
                     yield new \League\Flysystem\FileAttributes(
-                        $item['path'],
+                        $itemPath,
                         $item['size'] ?? null,
                         null,
-                        strtotime($item['modified']),
+                        isset($item['modified']) ? strtotime($item['modified']) : null,
                         $item['contenttype'] ?? null
                     );
                 }
             }
+        };
+
+        if (isset($data["metadata"]["contents"]) && is_array($data["metadata"]["contents"])) {
+            yield from $walk($data["metadata"]["contents"], rtrim($path, '/'));
         }
     }
 
