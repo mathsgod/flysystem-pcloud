@@ -9,7 +9,7 @@
     "require": {
         "league/flysystem": "3.0",
         "guzzlehttp/guzzle": "^7.9",
-        "mathsgod/pcloud-sdk-php": "main-dev"
+        "mathsgod/pcloud-sdk-php": "^1.0"
     },
     "autoload": {
         "psr-4": {

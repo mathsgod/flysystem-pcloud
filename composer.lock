@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c6f17062f3f01add70973b15c2f9d21f",
+    "content-hash": "a0625e3fcf31820ef05281de5dcf2391",
     "packages": [
         {
             "name": "guzzlehttp/guzzle",
@@ -477,22 +477,21 @@
         },
         {
             "name": "mathsgod/pcloud-sdk-php",
-            "version": "dev-main",
+            "version": "1.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/mathsgod/pcloud-sdk-php.git",
-                "reference": "057539fe41199319ebcc3b2163bca4959cfc95dd"
+                "reference": "05f1db81f084b18f82af7b321579b038090b8b55"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/mathsgod/pcloud-sdk-php/zipball/057539fe41199319ebcc3b2163bca4959cfc95dd",
-                "reference": "057539fe41199319ebcc3b2163bca4959cfc95dd",
+                "url": "https://api.github.com/repos/mathsgod/pcloud-sdk-php/zipball/05f1db81f084b18f82af7b321579b038090b8b55",
+                "reference": "05f1db81f084b18f82af7b321579b038090b8b55",
                 "shasum": ""
             },
             "require": {
                 "guzzlehttp/guzzle": "^7.9"
             },
-            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
@@ -511,9 +510,9 @@
             ],
             "support": {
                 "issues": "https://github.com/mathsgod/pcloud-sdk-php/issues",
-                "source": "https://github.com/mathsgod/pcloud-sdk-php/tree/main"
+                "source": "https://github.com/mathsgod/pcloud-sdk-php/tree/1.0.0"
             },
-            "time": "2025-06-30T07:17:27+00:00"
+            "time": "2025-06-30T09:31:53+00:00"
         },
         {
             "name": "psr/http-client",
@@ -790,9 +789,7 @@
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "mathsgod/pcloud-sdk-php": 20
-    },
+    "stability-flags": {},
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {},
